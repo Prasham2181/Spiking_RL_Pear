@@ -13,6 +13,8 @@ wandb/
 data/
 *.h5
 *.hdf5
+*.onnx
+*.engine
 
 # python env
 .venv/
