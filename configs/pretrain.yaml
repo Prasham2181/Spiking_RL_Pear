@@ -1,0 +1,44 @@
+# Future-event pretraining (F3-style objective, spiking encoder, TBPTT)
+data:
+  # Spiking_RL ships no data. All paths below are relative to `root` — point
+  # it at the directory that CONTAINS your mvsec/ folder.
+  root: /home/psoni/Prasham_DR
+  # *_data.hdf5 files (events only; no GT needed for pretraining)
+  paths:
+    - mvsec/hdf5-20260528T222152Z-3-010/hdf5/indoor_flying/indoor_flying1_data.hdf5
+    - mvsec/indoor_flying2_data-002.hdf5
+    - mvsec/indoor_flying3_data-009.hdf5
+    - mvsec/outdoor_day1_data-008.hdf5
+    - mvsec/outdoor_night1_data-004.hdf5
+  camera_side: left
+  H: 260
+  W: 346
+  bin_ms: 5            # fine bins so LIF dynamics actually encode time
+  T_in: 20             # 100 ms of context per sequence
+  pred_bins: 5         # predict occupancy of the next 25 ms, per step
+  stride_s: 0.05
+  train_frac: 0.8
+  val_frac: 0.2
+  test_frac: 0.0
+
+model:
+  stage_channels: [32, 64, 96, 128]   # /1, /2, /4, /8
+  fused_channels: 64
+  decay_init: 0.9
+  threshold: 1.0
+  count_clip: 4.0
+  spike_reg_weight: 1.0e-4
+
+training:
+  epochs: 30
+  batch_size: 8
+  lr: 0.001
+  lr_end_factor: 0.1
+  weight_decay: 1.0e-4
+  tbptt: 10            # backprop window (steps); state carries across chunks
+  warmup_steps: 5      # no loss while membranes fill up from zero
+  device: cuda
+  num_workers: 4
+  checkpoint_dir: checkpoints/pretrain
+  log_interval: 50
+  seed: 403
