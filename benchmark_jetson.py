@@ -195,6 +195,19 @@ def main() -> None:
     if args.device == "cuda" and not cuda_ok:
         print("WARNING: --device cuda requested but torch.cuda.is_available() is False; "
               "falling back to CPU. Check JETSON_SETUP.md if you expect a GPU build here.")
+
+    if device.type == "cuda":
+        # is_available() only means a CUDA driver was found, not that this
+        # torch build shipped kernels for this GPU's compute capability
+        # (e.g. PyPI torch wheels have crashed with "no kernel image is
+        # available" on Jetson Orin's CC 8.7 - see JETSON_SETUP.md).
+        try:
+            (torch.zeros(1, device=device) + 1).item()
+        except RuntimeError as e:
+            print(f"WARNING: CUDA reports available but a real op failed ({e}); "
+                  "falling back to CPU. See JETSON_SETUP.md for GPU remediation.")
+            device = torch.device("cpu")
+
     print(f"device={device}  fp16={args.fp16}\n")
 
     T_in, H, W = d["T_in"], d["H"], d["W"]

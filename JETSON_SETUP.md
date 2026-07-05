@@ -1,29 +1,47 @@
 # Jetson Orin Nano setup (inference / test runs, no training)
 
-## Confirmed working: JetPack 6 / L4T R36.4.7
+## Current status: CPU confirmed working, GPU blocked (CC 8.7 kernel mismatch)
 
-This exact combo is verified running on-device with `torch.cuda.is_available() == True`:
+`torch==2.12.1+cu126` (plain `pip install torch`, no jetson-containers or
+jetson-ai-lab index) installs cleanly on JetPack 6 / L4T R36.4.7 / CUDA 12.6 /
+Python 3.10.12, and **`torch.cuda.is_available()` reports `True`** — but that
+flag only means torch found a CUDA driver, not that it shipped kernels for
+this GPU. Actual CUDA ops crash:
 
-- JetPack 6, L4T **R36.4.7**, CUDA **12.6**, Python **3.10.12**
-- `torch==2.12.1+cu126` installed cleanly via pip in a venv (no jetson-containers,
-  no jetson-ai-lab index needed — as of this torch release PyPI's own wheel
-  carries aarch64+CUDA support)
-- Full system/toolchain reference (nvcc, driver, uname, repo path): [requirements_installed.txt](requirements_installed.txt)
-- Clean pip-installable freeze of the same versions: [requirements-jetson.lock.txt](requirements-jetson.lock.txt)
+```text
+CUDA error: no kernel image is available for execution on the device
+```
 
-If your Jetson matches this JetPack/L4T version, skip straight to:
+This PyPI wheel was built for compute capability 8.0–8.6 and 9.0; Orin's GPU
+is **CC 8.7**, which falls in the gap. `torch.cuda.is_available() == True` is
+necessary but not sufficient — always sanity-check with a real op
+(`torch.zeros(1, device="cuda") + 1`), not just the availability flag.
+
+**What works right now:** CPU inference, ~1.6 Hz full-pipeline streaming
+(608 ms/step) — see [BENCHMARK_RESULTS.md](BENCHMARK_RESULTS.md). Sufficient
+for initial testing; not the deployment target.
+
+**To get GPU working:** need a torch build compiled with `TORCH_CUDA_ARCH_LIST`
+including 8.7 — i.e. an actual Jetson/NVIDIA wheel, not the generic PyPI one.
+Attempted so far and blocked by *this device's* network access, not
+necessarily true elsewhere — retry when network access allows:
+
+- NVIDIA's redist server (`developer.download.nvidia.com/compute/redist/jp/v60/pytorch/`) — 404'd
+- Jetson AI Lab pip index (`pypi.jetson-ai-lab.dev`) — DNS resolution failed
+- `dusty-nv/jetson-containers` — not yet tried (needs Docker + network)
+
+Full remediation steps and options: [JETSON_PYTORCH_INSTALL.md](JETSON_PYTORCH_INSTALL.md),
+[GPU_SETUP_STATUS.md](GPU_SETUP_STATUS.md).
+
+Environment reference (nvcc, driver, uname, repo path): [requirements_installed.txt](requirements_installed.txt).
+Pip-installable freeze of the currently-installed (CPU-functional) versions: [requirements-jetson.lock.txt](requirements-jetson.lock.txt).
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements-jetson.lock.txt
-python -c "import torch; print(torch.__version__, torch.cuda.is_available())"  # must print True
-python tests/smoke_test.py                                                     # must be 5/5
+python -c "import torch; print(torch.__version__); torch.zeros(1, device='cuda') + 1"  # expect the CC 8.7 error above, for now
+python tests/smoke_test.py --device cpu 2>/dev/null || python tests/smoke_test.py       # must be 5/5 on CPU
 ```
-
-If you're on a **different** JetPack/L4T version, the lock file's exact torch
-build may not exist for you — fall back to the routes below and, once you
-confirm a working install, regenerate the lock file (see its header) so the
-next setup doesn't have to rediscover this.
 
 ---
 

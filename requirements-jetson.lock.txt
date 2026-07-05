@@ -1,5 +1,9 @@
-# Confirmed-working pip freeze on Jetson Orin Nano, JetPack 6 (L4T R36.4.7),
-# CUDA 12.6, Python 3.10.12. See JETSON_SETUP.md.
+# Pip freeze from Jetson Orin Nano, JetPack 6 (L4T R36.4.7), CUDA 12.6,
+# Python 3.10.12. CPU inference confirmed working with these exact versions.
+# GPU is NOT working: torch==2.12.1+cu126 here lacks CUDA kernels for Orin's
+# compute capability 8.7 (torch.cuda.is_available() is True but real ops
+# crash with "no kernel image is available for execution on the device").
+# See JETSON_SETUP.md for status and GPU remediation options.
 #
 # Regenerate after any deliberate upgrade with:
 #   python -m pip list --format=freeze > requirements-jetson.lock.txt
