@@ -8,7 +8,8 @@ This exact combo is verified running on-device with `torch.cuda.is_available() =
 - `torch==2.12.1+cu126` installed cleanly via pip in a venv (no jetson-containers,
   no jetson-ai-lab index needed — as of this torch release PyPI's own wheel
   carries aarch64+CUDA support)
-- Full pinned freeze: [requirements-jetson.lock.txt](requirements-jetson.lock.txt)
+- Full system/toolchain reference (nvcc, driver, uname, repo path): [requirements_installed.txt](requirements_installed.txt)
+- Clean pip-installable freeze of the same versions: [requirements-jetson.lock.txt](requirements-jetson.lock.txt)
 
 If your Jetson matches this JetPack/L4T version, skip straight to:
 
