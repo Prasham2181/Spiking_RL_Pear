@@ -84,6 +84,11 @@ python stream_depth.py --ckpt checkpoints/depth/snn_finetune/best.pt \
 python benchmark.py --conf configs/depth.yaml --device cuda
 python benchmark.py --conf configs/depth.yaml --baseline --device cuda
 
+# 6b. Jetson: same, but split encoder/decoder/full-pipeline, +power/thermal
+python benchmark_jetson.py --conf configs/depth.yaml
+python benchmark_jetson.py --conf configs/depth.yaml --fp16
+python benchmark_jetson.py --conf configs/depth.yaml --baseline
+
 # 7. Export the streaming step for the Jetson (verified against onnxruntime)
 python export_onnx.py --ckpt checkpoints/depth/snn_finetune/best.pt --out depth_stream.onnx
 ```

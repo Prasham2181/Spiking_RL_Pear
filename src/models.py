@@ -187,9 +187,7 @@ class UNetDepthBaseline(nn.Module):
             cin = c
         self.head = nn.Conv2d(channels[0], 1, 1)
 
-    def forward(self, bins: torch.Tensor) -> torch.Tensor:
-        import torch.nn.functional as F
-
+    def encode(self, bins: torch.Tensor) -> tuple[torch.Tensor, list[torch.Tensor]]:
         b, t, c, h, w = bins.shape
         x = torch.clamp(bins, 0.0, self.count_clip).view(b, t * c, h, w)
         skips = []
@@ -198,9 +196,18 @@ class UNetDepthBaseline(nn.Module):
             skips.append(x)
             x = self.pool(x)
         x = self.bottleneck(x)
+        return x, skips
+
+    def decode(self, x: torch.Tensor, skips: list[torch.Tensor]) -> torch.Tensor:
+        import torch.nn.functional as F
+
         for layer, skip in zip(self.dec, reversed(skips)):
             x = F.interpolate(x, size=skip.shape[-2:], mode="bilinear", align_corners=False)
             x = layer(torch.cat([x, skip], dim=1))
         log_depth = self.head(x).squeeze(1)
         log_depth = self.log_min + (self.log_max - self.log_min) * torch.sigmoid(log_depth)
         return torch.exp(log_depth)
+
+    def forward(self, bins: torch.Tensor) -> torch.Tensor:
+        x, skips = self.encode(bins)
+        return self.decode(x, skips)
