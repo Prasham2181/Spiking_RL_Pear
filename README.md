@@ -55,6 +55,9 @@ tests/smoke_test.py  synthetic end-to-end checks, no data needed
 
 ## Usage
 
+Running on a Jetson Orin Nano? See [JETSON_SETUP.md](JETSON_SETUP.md) first —
+`pip install torch` does not work on aarch64.
+
 ```bash
 pip install -r requirements.txt
 

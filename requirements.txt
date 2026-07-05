@@ -1,4 +1,8 @@
-torch>=2.1
+# torch is deliberately NOT pinned here: on x86 dev machines / the cluster,
+# `pip install torch>=2.1` is correct. On Jetson (aarch64), PyPI has no CUDA
+# build — install NVIDIA's JetPack-matched wheel FIRST (see JETSON_SETUP.md),
+# then run this file with torch already satisfied.
+torch>=2.1; platform_machine != "aarch64"
 snntorch>=0.9
 numpy
 h5py
