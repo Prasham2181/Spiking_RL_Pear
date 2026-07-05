@@ -1,9 +1,36 @@
 # Jetson Orin Nano setup (inference / test runs, no training)
 
-`pip install torch` on Jetson's aarch64 either fails or installs a CPU-only
-build with no CUDA support — PyPI does not carry NVIDIA's Jetson builds. Torch
-must come from a JetPack-matched source, installed *before* the rest of
-`requirements.txt`.
+## Confirmed working: JetPack 6 / L4T R36.4.7
+
+This exact combo is verified running on-device with `torch.cuda.is_available() == True`:
+
+- JetPack 6, L4T **R36.4.7**, CUDA **12.6**, Python **3.10.12**
+- `torch==2.12.1+cu126` installed cleanly via pip in a venv (no jetson-containers,
+  no jetson-ai-lab index needed — as of this torch release PyPI's own wheel
+  carries aarch64+CUDA support)
+- Full pinned freeze: [requirements-jetson.lock.txt](requirements-jetson.lock.txt)
+
+If your Jetson matches this JetPack/L4T version, skip straight to:
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements-jetson.lock.txt
+python -c "import torch; print(torch.__version__, torch.cuda.is_available())"  # must print True
+python tests/smoke_test.py                                                     # must be 5/5
+```
+
+If you're on a **different** JetPack/L4T version, the lock file's exact torch
+build may not exist for you — fall back to the routes below and, once you
+confirm a working install, regenerate the lock file (see its header) so the
+next setup doesn't have to rediscover this.
+
+---
+
+## If plain `pip install torch` doesn't give you CUDA
+
+Historically PyPI carried no Jetson (aarch64+CUDA) torch builds at all, so
+older JetPack versions need one of the routes below. Confirm which situation
+you're in first:
 
 ## 1. Confirm the exact JetPack / L4T version
 
