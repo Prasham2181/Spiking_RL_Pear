@@ -1,0 +1,11 @@
+torch>=2.1
+snntorch>=0.9
+numpy
+h5py
+pyyaml
+matplotlib
+pillow
+
+# optional, for export_onnx.py parity check / Jetson prep
+# onnx
+# onnxruntime

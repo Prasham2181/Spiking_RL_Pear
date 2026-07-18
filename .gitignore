@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+logs/
+checkpoints/*
+!checkpoints/depth/
+checkpoints/depth/*
+!checkpoints/depth/snn_finetune_zipdepth/
+checkpoints/depth/snn_finetune_zipdepth/*
+!checkpoints/depth/snn_finetune_zipdepth/best.pt

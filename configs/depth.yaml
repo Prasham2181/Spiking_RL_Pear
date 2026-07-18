@@ -1,0 +1,49 @@
+# Downstream depth on M3ED LiDAR GT frames (~10 Hz, dense-projected)
+data:
+  # Point `root` at the directory that CONTAINS your m3ed/ folder.
+  root: /home/psoni/Prasham_DR
+  # (events *_data.h5, *_depth_gt.h5) pairs
+  # NOTE: corrupted files (truncated downloads, re-download before adding):
+  #   penno_big_loop_data.h5, schuylkill_tunnel_depth_gt.h5, ucity_big_loop_depth_gt.h5
+  pairs:
+    - [m3ed/car_urban_day_city_hall_data.h5, m3ed/car_urban_day_city_hall_depth_gt.h5]
+    - [m3ed/car_urban_day_horse_data.h5, m3ed/car_urban_day_horse_depth_gt.h5]
+    - [m3ed/car_urban_day_penno_small_loop_data.h5, m3ed/car_urban_day_penno_small_loop_depth_gt.h5]
+    - [m3ed/car_urban_day_rittenhouse_data.h5, m3ed/car_urban_day_rittenhouse_depth_gt.h5]
+    - [m3ed/car_urban_day_ucity_small_loop_data.h5, m3ed/car_urban_day_ucity_small_loop_depth_gt.h5]
+  camera_side: left
+  downscale: 2         # 1280x720 -> 640x360; depth frames strided to match
+  H: 360
+  W: 640
+  bin_ms: 5            # must match the pretraining bin size
+  T_in: 20             # 100 ms context before each depth frame
+  frame_stride: 4      # GT is ~10 Hz; every 4th frame -> ~7.7k samples total
+  max_depth: 80.0      # urban driving; mask LiDAR beyond this
+  min_depth: 1.0
+  train_frac: 0.8
+  val_frac: 0.2
+  test_frac: 0.0
+
+# Encoder settings must match the pretraining checkpoint's architecture
+model:
+  stage_channels: [32, 64, 96, 128]
+  fused_channels: 64
+  decay_init: 0.9
+  threshold: 1.0
+  count_clip: 4.0
+  depth_min: 1.0
+  depth_max: 80.0      # must match data.max_depth (see HANDOFF §8)
+
+training:
+  epochs: 30
+  batch_size: 4        # 640x360 is 2.6x MVSEC's pixel count
+  lr: 0.001
+  finetune_lr: 0.0001  # encoder lr with --finetune (head still uses lr)
+  lr_end_factor: 0.1
+  weight_decay: 1.0e-4
+  silog_lambda: 0.5
+  device: cuda
+  num_workers: 6
+  checkpoint_dir: checkpoints/depth
+  log_interval: 50
+  seed: 403

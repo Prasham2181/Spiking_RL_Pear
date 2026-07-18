@@ -1,0 +1,49 @@
+# Future-event pretraining (F3-style objective, spiking encoder, TBPTT)
+# M3ED car_urban_day, prophesee left, lazily sliced from HDF5.
+data:
+  # Point `root` at the directory that CONTAINS your m3ed/ folder.
+  root: /home/psoni/Prasham_DR
+  # *_data.h5 files (events only; no GT needed for pretraining)
+  # NOTE: car_urban_day_penno_big_loop_data.h5 is corrupted (truncated
+  # download, "wrong B-tree signature") — re-download before adding it.
+  paths:
+    - m3ed/car_urban_day_city_hall_data.h5
+    - m3ed/car_urban_day_horse_data.h5
+    - m3ed/car_urban_day_penno_small_loop_data.h5
+    - m3ed/car_urban_day_rittenhouse_data.h5
+    - m3ed/car_urban_day_schuylkill_tunnel_data.h5
+    - m3ed/car_urban_day_ucity_big_loop_data.h5
+    - m3ed/car_urban_day_ucity_small_loop_data.h5
+  camera_side: left
+  downscale: 2         # 1280x720 -> 640x360 (integer coordinate division)
+  H: 360
+  W: 640
+  bin_ms: 5            # fine bins so LIF dynamics actually encode time
+  T_in: 20             # 100 ms of context per sequence
+  pred_bins: 5         # predict occupancy of the next 25 ms, per step
+  stride_s: 0.5        # ~52 min of usable data; 0.05 would give 60k samples/epoch
+  train_frac: 0.8
+  val_frac: 0.2
+  test_frac: 0.0
+
+model:
+  stage_channels: [32, 64, 96, 128]   # /1, /2, /4, /8
+  fused_channels: 64
+  decay_init: 0.9
+  threshold: 1.0
+  count_clip: 4.0
+  spike_reg_weight: 1.0e-4
+
+training:
+  epochs: 30
+  batch_size: 4        # 640x360 is 2.6x MVSEC's pixel count; keep activations in check
+  lr: 0.001
+  lr_end_factor: 0.1
+  weight_decay: 1.0e-4
+  tbptt: 10            # backprop window (steps); state carries across chunks
+  warmup_steps: 5      # no loss while membranes fill up from zero
+  device: cuda
+  num_workers: 6
+  checkpoint_dir: checkpoints/pretrain
+  log_interval: 50
+  seed: 403
