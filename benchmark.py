@@ -48,6 +48,10 @@ def main() -> None:
     parser.add_argument("--iters", type=int, default=30)
     parser.add_argument("--warmup", type=int, default=5)
     parser.add_argument("--baseline", action="store_true")
+    parser.add_argument("--head", choices=["fpn", "zipdepth"], default="fpn",
+                         help="depth head: original FPN or ZipDepth decoder")
+    parser.add_argument("--ckpt", default=None, help="trained checkpoint to load (weights don't affect "
+                         "latency but confirm you're timing the actual deployed network)")
     args = parser.parse_args()
     with open(args.conf) as f:
         conf = yaml.safe_load(f)
@@ -73,8 +77,20 @@ def main() -> None:
         stage_channels=tuple(m["stage_channels"]), fused_channels=m["fused_channels"],
         decay_init=m["decay_init"], threshold=m["threshold"], count_clip=m["count_clip"],
         depth_min=m["depth_min"], depth_max=m["depth_max"],
-    ).to(device).eval()
-    print(f"SpikingDepthModel  params {sum(p.numel() for p in model.parameters()):,}  "
+    ).to(device)
+    if args.head == "zipdepth":
+        from src.zipdepth_head import ZipDepthHead
+
+        model.depth_head = ZipDepthHead(
+            in_channels=model.encoder.stage_channels, fused_channels=m["fused_channels"],
+            depth_min=m["depth_min"], depth_max=m["depth_max"],
+        ).to(device)
+    if args.ckpt:
+        payload = torch.load(args.ckpt, map_location=device, weights_only=False)
+        model.load_state_dict(payload["model"])
+        print(f"loaded weights from {args.ckpt} (tag={payload.get('tag')})")
+    model = model.eval()
+    print(f"SpikingDepthModel [{args.head}]  params {sum(p.numel() for p in model.parameters()):,}  "
           f"device {device}  input (1, {T_in}, 2, {H}, {W})")
 
     with torch.no_grad():
